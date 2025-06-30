@@ -28,6 +28,25 @@ final class TaskController extends AbstractController
         return $this->json($data);
     }
 
+    #[Route('/api/task{id}', methods: ['GET'])]
+    public function show(int $id, TaskRepository $taskRepository): JsonResponse
+    {
+        $task = $taskRepository->find($id);
+
+        if (!$task) {
+            return $this->json(['error' => 'Task not found'], 404);
+        }
+
+        $data = [
+            'id' => $task->getId(),
+            'title' => $task->getTitle(),
+            'description' => $task->getDescription(),
+            'status' => $task->getStatus(),
+        ];
+
+        return $this->json($data);
+    }
+
     #[Route('/api/task', methods: ['POST'])]
     public function create(Request $request, EntityManagerInterface $em) : JsonResponse {
 
