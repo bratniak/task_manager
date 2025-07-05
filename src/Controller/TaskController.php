@@ -11,6 +11,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+use function PHPUnit\Framework\isString;
+
 final class TaskController extends AbstractController
 {
     #[Route('/api/tasks', methods: ['GET'])]
@@ -48,22 +50,55 @@ final class TaskController extends AbstractController
     }
 
     #[Route('/api/task', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $em) : JsonResponse {
+    public function create(Request $request, EntityManagerInterface $em): JsonResponse
+    {
 
-        $data = json_decode($request);
+        $headers = $request->headers->all();
+        $body = json_decode($request->getContent());
+
+        if (!$headers || !$body) {
+            return $this->json([
+                'message' => "Incorrect headers or body",
+            ], 201);
+        }
+
+        $headers = array_map(function ($item) {
+            return $item[0];
+        }, $headers);
+
+        if (!isset($headers['content-type']) || $headers['content-type'] !== 'application/json') {
+            return $this->json([
+                'message' => "Incorrect headers",
+            ], 201);
+        }
+
+        $body = get_object_vars($body);
 
         $task = new Task();
-        $task->setTitle($data['title'] ?? 'Untitled');
-        $task->setDescription($data['description'] ?? 'empty');
-        $task->setStatus($data['status' ?? 'todo']);
+        if (isset($body['title']) && isString($body['title'])) {
+            $task->setTitle($body['title'] ?? 'Untitled');
+        }
 
-        $em->persist($task);
-        $em->flush();
+        if (isset($body['description']) && isString($body['description'])) {
+            $task->setDescription($body['description'] ?? 'empty');
+        }
 
-        //handle db
-        return $this->json([
-            'message' => "Task created",
-            'id' => $task->getId()
-        ], 201);
+        if (isset($body['status']) && isString($body['status'])) {
+            $task->setStatus($body['status'] ?? 'todo');
+        }
+
+        try {
+            $em->persist($task);
+            $em->flush();
+
+            return $this->json([
+                'message' => "Task created",
+                'id' => $task->getId()
+            ], 201);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Failed to create task',
+            ], 500);
+        }
     }
 }
