@@ -8,10 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-
-use function PHPUnit\Framework\isString;
 
 final class TaskController extends AbstractController
 {
@@ -56,36 +53,59 @@ final class TaskController extends AbstractController
         $headers = $request->headers->all();
         $body = json_decode($request->getContent());
 
-        if (!$headers || !$body) {
-            return $this->json([
-                'message' => "Incorrect headers or body",
-            ], 201);
+        if (null === $body) {
+            return $this->json(['message' => 'Invalid JSON body'], 400);
         }
 
         $headers = array_map(function ($item) {
             return $item[0];
         }, $headers);
 
-        if (!isset($headers['content-type']) || $headers['content-type'] !== 'application/json') {
+        if (
+            !isset($headers['content-type']) ||
+            $headers['content-type'] !== 'application/json'
+        ) {
             return $this->json([
                 'message' => "Incorrect headers",
-            ], 201);
+            ], 400);
         }
 
         $body = get_object_vars($body);
 
         $task = new Task();
-        if (isset($body['title']) && isString($body['title'])) {
-            $task->setTitle($body['title'] ?? 'Untitled');
+        if (
+            isset($body['title']) &&
+            is_string($body['title']) &&
+            !empty($body['title'])
+        ) {
+            $task->setTitle($body['title']);
+        } else {
+            $task->setTitle('Untitled');
         }
 
-        if (isset($body['description']) && isString($body['description'])) {
-            $task->setDescription($body['description'] ?? 'empty');
+        if (
+            isset($body['description']) &&
+            is_string($body['description']) &&
+            !empty($body['description'])
+        ) {
+            $task->setDescription($body['description']);
+        } else {
+            $task->setDescription('empty');
         }
 
-        if (isset($body['status']) && isString($body['status'])) {
-            $task->setStatus($body['status'] ?? 'todo');
+        if (
+            isset($body['status']) &&
+            is_string($body['status']) &&
+            !empty($body['status'])
+        ) {
+            $task->setStatus($body['status']);
+        } else {
+            $task->setStatus('todo');
         }
+
+        $now = new \DateTimeImmutable();
+        $task->setCreatedAt($now);
+        $task->setUpdatedAt($now);
 
         try {
             $em->persist($task);
