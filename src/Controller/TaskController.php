@@ -27,7 +27,7 @@ final class TaskController extends AbstractController
         return $this->json($data);
     }
 
-    #[Route('/api/task{id}', methods: ['GET'])]
+    #[Route('/api/task/{id}', methods: ['GET'])]
     public function show(int $id, TaskRepository $taskRepository): JsonResponse
     {
         $task = $taskRepository->find($id);
@@ -43,7 +43,7 @@ final class TaskController extends AbstractController
             'status' => $task->getStatus(),
         ];
 
-        return $this->json($data);
+        return $this->json($task, 200, [], ['groups' => 'task:read']);
     }
 
     #[Route('/api/task', methods: ['POST'])]
@@ -118,6 +118,30 @@ final class TaskController extends AbstractController
         } catch (\Exception $e) {
             return $this->json([
                 'error' => 'Failed to create task',
+            ], 500);
+        }
+    }
+
+    #[Route('/api/task/{id}', methods: ['DELETE'])]
+    public function delete(int $id, TaskRepository $taskRepository, EntityManagerInterface $em): JsonResponse
+    {
+        $task = $taskRepository->find($id);
+
+        if (!$task) {
+            return $this->json(['error' => 'Task not found'], 404);
+        }
+
+        $em->remove($task);
+
+        try {
+            $em->flush();
+            return $this->json([
+                'message' => "Task deleted",
+                'id' => $id
+            ], 200);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Failed to delete task',
             ], 500);
         }
     }
