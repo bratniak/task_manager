@@ -114,7 +114,7 @@ final class TaskController extends AbstractController
             return $this->json([
                 'message' => "Task created",
                 'id' => $task->getId()
-            ], 201);
+            ], 200);
         } catch (\Exception $e) {
             return $this->json([
                 'error' => 'Failed to create task',
