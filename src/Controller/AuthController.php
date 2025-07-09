@@ -53,6 +53,7 @@ final class AuthController extends AbstractController
 
         $hashedPassword = $pwdHasher->hashPassword($user, $data['password']);
         $user->setPassword($hashedPassword);
+        $user->setRoles([]);
 
         $em->persist($user);
 
